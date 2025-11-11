@@ -1,4 +1,4 @@
-# Comedero Automático para Gatos — Equipo <Nombre> 
+# Comedero Automático para Gatos — Equipo <Allan> 
 ## Descripción 
 Pequeño sistema que dispensa alimento automáticamente usando 
 <Arduino/ESP32> y un motor. 
