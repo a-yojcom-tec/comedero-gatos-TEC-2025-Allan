@@ -1,1 +1,6 @@
-
+LISTA DE MATERIALES:
+1. ESP32
+2. Biblioteca: ESP32Servo
+3. Sensor PIR (HC-SR501)
+4. Servomotor (Servo)
+5. LED (con un resistor de 220 Ohms)
