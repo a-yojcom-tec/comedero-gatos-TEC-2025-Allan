@@ -1,45 +1,77 @@
 //CÓDIGO DEL MICROCONTROLADOR
-{
-  "version": 1,
-  "author": "36 - Allan Yojcom",
-  "editor": "wokwi",
-  "parts": [
-    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": -4.76, "attrs": {} },
-    {
-      "type": "wokwi-pir-motion-sensor",
-      "id": "pir1",
-      "top": -111.2,
-      "left": -64.98,
-      "attrs": {}
-    },
-    { "type": "wokwi-servo", "id": "servo1", "top": 65.2, "left": -192, "attrs": {} },
-    {
-      "type": "wokwi-led",
-      "id": "led1",
-      "top": 44.4,
-      "left": 147.8,
-      "attrs": { "color": "cyan" }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r1",
-      "top": 109.55,
-      "left": 115.2,
-      "attrs": { "value": "220" }
+//Introducción a la Electrónica. Allan Dominick Yojcom
+// --- Bibliotecas --- 
+#include <ESP32Servo.h> // Necesaria para el control angular preciso del Servomotor
+
+// --- Definición de Pines de E/S --- 
+const int pinPIR = 34;     // Pin de Entrada (Sensor) - Se cambió de ser pin 2 a 34
+const int pinServo = 13;  // Pin de Salida (Actuador de Movimiento) 
+const int pinLED = 5;     // Pin de Salida (Actuador de Luz/Indicador) 
+
+// --- Variables y Objetos del Comedero --- 
+Servo dispensador;        // Crea un objeto llamado "dispensador" 
+int anguloDispensa = 140; // POSICIÓN 1: Ángulo al que se mueve para que CAIGA el alimento 
+int anguloCerrado = 40;   // POSICIÓN 2: Ángulo de reposo (Tapa CERRADA) 
+// Bandera lógica: Es crucial para evitar que el servo gire sin parar 
+bool dispensado = false;  // Inicialmente, no se ha servido comida (estado 'false')
+
+void setup() { 
+  Serial.begin(115200);     // Inicia el Monitor Serial para ver mensajes de estado
+
+// Configuración de Pines 
+  pinMode(pinPIR, INPUT);   // El PIR es una ENTRADA que lee movimiento 
+  pinMode(pinLED, OUTPUT);  // El LED es una SALIDA 
+   
+  // Configuración del Servomotor 
+  dispensador.attach(pinServo);     // Asocia el objeto 'dispensador' al pin 13
+  dispensador.write(anguloCerrado); // Coloca el servo en la posición inicial (CERRADO) 
+  digitalWrite(pinLED, LOW);        // Asegura que el LED esté apagado 
+   
+  Serial.println("Comedero Inteligente: Modo EN ESPERA..."); 
+} 
+ 
+void loop() { 
+  // 1. Lee el estado del sensor PIR 
+  int hayGato = digitalRead(pinPIR);  
+   
+  // Lógica: Solo actúa si hayGato es ALTO Y dispensado es FALSO 
+  if (hayGato == HIGH) { 
+     
+    if (dispensado == false) { 
+      // --- INICIO DE LA SECUENCIA DE DISPENSACIÓN --- 
+      Serial.println(">>> ¡Gato detectado! Dispensando alimento..."); 
+       
+      // Actuador 1: Mueve el servo (la tapa) para servir la comida 
+      dispensador.write(anguloDispensa);  
+       
+      // Actuador 2: Enciende el LED para indicar que está sirviendo 
+      digitalWrite(pinLED, HIGH);  
+       
+      delay(2000); // Espera 1.5 segundos para que todo el alimento caiga 
+      //(Corrección, se cambió a 2 segundos)
+      // Actuador 1: Cierra el dispensador para detener el flujo de comida 
+      dispensador.write(anguloCerrado); 
+       
+      // Actuador 2: Apaga el LED 
+      digitalWrite(pinLED, LOW);  
+       
+      // Establece la bandera a TRUE: ¡Comida Servida! (Esto previene servir de nuevo) 
+      dispensado = true;  
+       
+      Serial.println("Dispensación completada. Servo cerrado."); 
+       
+      // Espera 10 segundos antes de volver a verificar el estado para evitar re-disparos 
+      delay(10000);
     }
-  ],
-  "connections": [
-    [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "servo1:PWM", "esp:13", "green", [ "h-9.6", "v29" ] ],
-    [ "pir1:VCC", "esp:3V3", "red", [ "v28.8", "h28.65" ] ],
-    [ "pir1:GND", "esp:GND.2", "black", [ "h105.34", "v48" ] ],
-    [ "servo1:GND", "esp:GND.1", "black", [ "h-19.2", "v38.4" ] ],
-    [ "servo1:V+", "esp:3V3", "red", [ "h-9.6", "v-95.9" ] ],
-    [ "led1:C", "esp:GND.3", "black", [ "v0" ] ],
-    [ "led1:A", "r1:2", "red", [ "v0" ] ],
-    [ "r1:1", "esp:5", "green", [ "v0" ] ],
-    [ "pir1:OUT", "esp:34", "green", [ "v0" ] ]
-  ],
-  "dependencies": {}
+  
+  } else {
+    // Si NO se detecta movimiento...
+    if (dispensado == true) {
+      // Si el gato se fue (ya no hay movimiento) Y ya había comido...
+      // Reinicia la bandera a FALSE: El comedero está listo para la próxima vez
+      dispensado = false;
+      Serial.println("Sistema reiniciado. Listo para la próxima comida.");
+    }
+    delay(500); // Pausa breve para aligerar el procesador
+  }
 }
